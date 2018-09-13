@@ -1,7 +1,7 @@
 {
   "name": "elvine",
   "version": "1.0.0",
-  "author": "Alexander Almström <alexander.almstrom@panagora.se>",
+  "author": "Alexander Almström <info@alexanderalmstrom.com>",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
