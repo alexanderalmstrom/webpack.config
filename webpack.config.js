@@ -8,7 +8,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin')
-const ManifestPlugin = require('webpack-manifest-plugin')
+const WebpackAssetsManifest = require('webpack-assets-manifest')
 
 const env = process.env.WEBPACK_SERVE ? 'development' : 'production'
 
@@ -49,26 +49,40 @@ const config = {
         }
       },
       {
-      test: /\.scss$/,
-      use: [
-        {
-          loader: env == 'development' ? 'style-loader' : MiniCssExtractPlugin.loader
-        },
-        {
-          loader: 'css-loader',
-          options: {
-            sourceMap: env == 'development' ? true : false
+        test: /\.scss$/,
+        use: [
+          {
+            loader: env == 'development' ? 'style-loader' : MiniCssExtractPlugin.loader
+          },
+          {
+            loader: 'css-loader',
+            options: {
+              sourceMap: env == 'development' ? true : false
+            }
+          },
+          {
+            loader: 'sass-loader',
+            options: {
+              includePaths: ['node_modules'],
+              sourceMap: env == 'development' ? true : false
+            }
           }
-        },
-        {
-          loader: 'sass-loader',
-          options: {
-            includePaths: ['node_modules'],
-            sourceMap: env == 'development' ? true : false
+        ]
+      },
+      {
+        test: /\.(png|jpg)$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              context: 'src/images',
+              name: env == 'development' ? '[path][name].[ext]' : '[path][name]-[hash].[ext]',
+              outputPath: 'images/'
+            }
           }
-        }
-      ]
-    }]
+        ]
+      }
+    ]
   },
 
   optimization: {
@@ -92,7 +106,7 @@ if (env == 'production') {
     new CleanWebpackPlugin('build'),
     new CopyWebpackPlugin([
       {
-        from: './src/index.html',
+        from: 'src/index.html',
         to: ''
       }
     ]),
@@ -100,12 +114,7 @@ if (env == 'production') {
       filename: '[name].[contenthash].css',
       chunkFilename: '[id].[contenthash].css'
     }),
-    new ManifestPlugin({
-      basePath: '/',
-      filter: function (file) {
-        return file.isChunk
-      }
-    }),
+    new WebpackAssetsManifest(),
     function () {
       this.plugin('done', function (stats) {
         const replaceInFile = function (filePath, replaceFrom, replaceTo) {
