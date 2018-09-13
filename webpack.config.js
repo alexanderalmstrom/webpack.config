@@ -80,7 +80,9 @@ const config = {
       }),
       new OptimizeCSSAssetsPlugin()
     ]
-  }
+  },
+
+  plugins: []
 }
 
 if (env == 'production') {
