@@ -3,7 +3,7 @@ const express = require('express')
 const http = require('http')
 const morgan = require('morgan')
 
-const env = process.env.WEBPACK_SERVE ? 'development' : 'production'
+const env = process.env.NODE_ENV || 'production'
 
 const app = express()
 const server = http.createServer(app)

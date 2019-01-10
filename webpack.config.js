@@ -1,21 +1,21 @@
 const path = require('path')
 const fs = require('fs')
 const webpack = require('webpack')
-const history = require('connect-history-api-fallback')
-const convert = require('koa-connect')
 const CleanWebpackPlugin = require('clean-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin')
-const WebpackAssetsManifest = require('webpack-assets-manifest')
+const ManifestPlugin = require('webpack-manifest-plugin')
+const RevPlugin = require('./plugins/RevPlugin')
 
-const env = process.env.WEBPACK_SERVE ? 'development' : 'production'
+const env = process.env.NODE_ENV
 
 const config = {
   mode: env,
 
-  entry: './src/main.js',
+  entry: {
+    main: './src/main.js'
+  },
 
   output: {
     filename: '[name].js',
@@ -23,15 +23,14 @@ const config = {
     publicPath: '/'
   },
 
-  serve: {
+  devServer: {
+    contentBase: path.resolve(__dirname, 'src'),
+    watchContentBase: true,
+    host: '0.0.0.0',
+    disableHostCheck: true,
     port: 5000,
-    content: path.resolve(__dirname, 'src'),
-    devMiddleware: {
-      publicPath: '/'
-    },
-    add: (app) => {
-      app.use(convert(history()))
-    }
+    hot: true,
+    historyApiFallback: true
   },
 
   module: {
@@ -42,8 +41,6 @@ const config = {
         use: {
           loader: 'babel-loader',
           options: {
-            babelrc: false,
-            presets: ["@babel/preset-env"],
             cacheDirectory: true
           }
         }
@@ -85,61 +82,56 @@ const config = {
     ]
   },
 
-  optimization: {
-    minimizer: [
-      new UglifyJsPlugin({
-        cache: true,
-        parallel: true,
-        sourceMap: env == 'development'? true : false
-      }),
-      new OptimizeCSSAssetsPlugin()
-    ]
-  },
-
   plugins: []
 }
 
+if (env == 'development') {
+  config.plugins.push(new webpack.HotModuleReplacementPlugin())
+}
+
 if (env == 'production') {
-  config.output.filename = '[name].[contenthash].js'
+  config.output.filename = '[name]-[hash].js'
 
   config.plugins.push(
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(env),
+      'process.env.CONTENTFUL_SPACE_ID': JSON.stringify(process.env.CONTENTFUL_SPACE_ID),
+      'process.env.CONTENTFUL_ACCESS_TOKEN': JSON.stringify(process.env.CONTENTFUL_ACCESS_TOKEN),
+      'process.env.CONTENTFUL_PREVIEW_ACCESS_TOKEN': JSON.stringify(process.env.CONTENTFUL_PREVIEW_ACCESS_TOKEN),
+      'process.env.CONTENTFUL_PREVIEW': JSON.stringify(process.env.CONTENTFUL_PREVIEW),
+      'process.env.CONTENTFUL_MANAGEMENT_TOKEN': JSON.stringify(process.env.CONTENTFUL_MANAGEMENT_TOKEN),
+      'process.env.CONTENTFUL_DEFAULT_LOCALE': JSON.stringify(process.env.CONTENTFUL_DEFAULT_LOCALE),
+      'process.env.CONTENTFUL_ENVIRONMENT': JSON.stringify(process.env.CONTENTFUL_ENVIRONMENT),
+      'process.env.KLARNA_USERNAME': JSON.stringify(process.env.KLARNA_USERNAME),
+      'process.env.KLARNA_PASSWORD': JSON.stringify(process.env.KLARNA_PASSWORD),
+      'process.env.SITE_URL': JSON.stringify(process.env.SITE_URL),
+      'process.env.DEFAULT_COUNTRY': JSON.stringify(process.env.DEFAULT_COUNTRY),
+      'process.env.DEFAULT_CURRENCY': JSON.stringify(process.env.DEFAULT_CURRENCY),
+      'process.env.DEFAULT_LOCALE': JSON.stringify(process.env.DEFAULT_LOCALE)
+    }),
     new CleanWebpackPlugin('build'),
     new CopyWebpackPlugin([
       {
-        from: 'src/index.html',
+        from: './src/index.html',
         to: ''
       }
     ]),
     new MiniCssExtractPlugin({
-      filename: '[name].[contenthash].css',
-      chunkFilename: '[id].[contenthash].css'
+      filename: '[name]-[hash].css'
     }),
-    new WebpackAssetsManifest(),
-    function () {
-      this.plugin('done', function (stats) {
-        const replaceInFile = function (filePath, replaceFrom, replaceTo) {
-          const replacer = function (match) {
-            console.log('Replacing in %s: %s => %s', filePath, match, replaceTo)
-            return replaceTo
-          }
-
-          const str = fs.readFileSync(filePath, 'utf8')
-          const out = str.replace(new RegExp(replaceFrom, 'g'), replacer)
-
-          fs.writeFileSync(filePath, out)
-        }
-
-        const layoutPath = path.resolve(__dirname, 'build', 'index.html')
-        const manifestPath = path.resolve(__dirname, 'build', 'manifest.json')
-        const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-
-        for (let key in manifestData) {
-          let value = manifestData[key]
-
-          replaceInFile(layoutPath, key, value)
-        }
-      })
-    }
+    new OptimizeCSSAssetsPlugin(),
+    new ManifestPlugin({
+      basePath: '/',
+      filter: function (file) {
+        return file.isChunk
+      }
+    }),
+    new RevPlugin({
+      manifest: path.resolve(__dirname, 'build', 'manifest.json'),
+      files: [
+        path.resolve(__dirname, 'build', 'index.html')
+      ]
+    })
   )
 }
 
