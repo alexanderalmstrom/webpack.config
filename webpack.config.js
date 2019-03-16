@@ -1,125 +1,139 @@
-const path = require('path')
-const fs = require('fs')
-const webpack = require('webpack')
-const CleanWebpackPlugin = require('clean-webpack-plugin')
-const CopyWebpackPlugin = require('copy-webpack-plugin')
-const MiniCssExtractPlugin = require('mini-css-extract-plugin')
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin')
-const ManifestPlugin = require('webpack-manifest-plugin')
-const RevPlugin = require('./plugins/RevPlugin')
+const path = require('path');
+const webpack = require('webpack');
+const merge = require('webpack-merge');
+const CleanWebpackPlugin = require('clean-webpack-plugin');
+const CssExtractPlugin = require("mini-css-extract-plugin");
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const TerserPlugin  = require('terser-webpack-plugin');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const WriteFilePlugin = require('write-file-webpack-plugin');
 
-const env = process.env.NODE_ENV
+module.exports = (env, argv) => {
+	// Common
+	const commonConfig = {
+		mode: argv.mode,
 
-const config = {
-  mode: env,
+		entry: {
+			app: path.resolve(__dirname, 'src', 'index.js')
+		},
+	
+		output: {
+			filename: '[name].js',
+			chunkFilename: '[name].js',
+			path: path.resolve(__dirname, 'public'),
+			publicPath: '/'
+		},
+	
+		module: {
+			rules: [
+				{
+					test: /\.js$/,
+					exclude: /\node_modules/,
+					loader: 'babel-loader'
+				},
+				{
+					test: /\.(css|scss)$/,
+					use: [
+						{
+							loader: argv.mode == 'development' ? 'style-loader' : CssExtractPlugin.loader
+						},
+						{
+							loader: 'css-loader',
+							options: {
+								sourceMap: argv.mode == 'development' ? true : false,
+								importLoaders: 2
+							}
+						},
+						{
+							loader: 'sass-loader',
+							options: {
+								sourceMap: argv.mode == 'development' ? true : false,
+								includePaths: ['node_modules']
+							}
+						}
+					]
+				}
+			]
+		},
 
-  entry: {
-    main: './src/main.js'
-  },
+		optimization: {
+			splitChunks: {
+				cacheGroups: {
+					vendors: {
+						test: /[\\/]node_modules[\\/]/
+					}
+				}
+			}
+		},
+	
+		plugins: [
+			new CleanWebpackPlugin(),
+			new HtmlWebpackPlugin({
+				inject: false,
+				template: path.resolve(__dirname, 'src', 'index.ejs'),
+				filename: 'index.html',
+				minify: {
+					collapseWhitespace: true
+				}
+			})
+		]
+	}
+	
+	// Development
+	const devConfig = {
+		devtool: 'eval-source-map',
 
-  output: {
-    filename: '[name].js',
-    path: path.resolve(__dirname, 'build'),
-    publicPath: '/'
-  },
+		devServer: {
+			contentBase: path.resolve(__dirname, 'src'),
+			watchContentBase: false,
+			publicPath: '/',
+			host: '0.0.0.0',
+			disableHostCheck: true,
+			port: 5000,
+			hot: true,
+			historyApiFallback: true
+		},
 
-  devServer: {
-    contentBase: path.resolve(__dirname, 'src'),
-    watchContentBase: true,
-    host: '0.0.0.0',
-    disableHostCheck: true,
-    port: 5000,
-    hot: true,
-    historyApiFallback: true
-  },
+		plugins: [
+			new webpack.HotModuleReplacementPlugin(),
+			new WriteFilePlugin({
+				test: /\.(css|js|html)$/,
+				useHashIndex: true
+			})
+		]
+	}
+	
+	// Production
+	const prodConfig = {
+		output: {
+			filename: '[name].[hash].js',
+			chunkFilename: '[name].[chunkhash].js'
+		},
 
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            cacheDirectory: true
-          }
-        }
-      },
-      {
-        test: /\.scss$/,
-        use: [
-          {
-            loader: env == 'development' ? 'style-loader' : MiniCssExtractPlugin.loader
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: env == 'development' ? true : false
-            }
-          },
-          {
-            loader: 'sass-loader',
-            options: {
-              includePaths: ['node_modules'],
-              sourceMap: env == 'development' ? true : false
-            }
-          }
-        ]
-      },
-      {
-        test: /\.(png|jpg)$/,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              context: 'src/images',
-              name: env == 'development' ? '[path][name].[ext]' : '[path][name]-[hash].[ext]',
-              outputPath: 'images/'
-            }
-          }
-        ]
-      }
-    ]
-  },
+		optimization: {
+			minimizer: [
+				new OptimizeCSSAssetsPlugin(),
+				new TerserPlugin({
+					cache: true,
+					parallel: true,
+					sourceMap: false
+				})
+			]
+		},
 
-  plugins: []
+		plugins: [
+			new webpack.DefinePlugin({
+				'process.env.NODE_ENV': JSON.stringify(argv.mode)
+			}),
+			new CssExtractPlugin({
+				filename: '[name].[hash].css',
+				chunkFilename: '[name].[chunkhash].css'
+			})
+		]
+	}
+	
+	return merge(
+		commonConfig,
+		argv.mode == 'development' ? devConfig : prodConfig
+	);
 }
-
-if (env == 'development') {
-  config.plugins.push(new webpack.HotModuleReplacementPlugin())
-}
-
-if (env == 'production') {
-  config.output.filename = '[name]-[hash].js'
-
-  config.plugins.push(
-    new webpack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify(env)
-    }),
-    new CleanWebpackPlugin('build'),
-    new CopyWebpackPlugin([
-      {
-        from: './src/index.html',
-        to: ''
-      }
-    ]),
-    new MiniCssExtractPlugin({
-      filename: '[name]-[hash].css'
-    }),
-    new OptimizeCSSAssetsPlugin(),
-    new ManifestPlugin({
-      basePath: '/',
-      filter: function (file) {
-        return file.isChunk
-      }
-    }),
-    new RevPlugin({
-      manifest: path.resolve(__dirname, 'build', 'manifest.json'),
-      files: [
-        path.resolve(__dirname, 'build', 'index.html')
-      ]
-    })
-  )
-}
-
-module.exports = config
