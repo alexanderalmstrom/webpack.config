@@ -9,6 +9,7 @@ const env = process.env.NODE_ENV || 'production'
 const app = express()
 const server = http.createServer(app)
 const port = process.env.PORT || 5000
+const cwd = process.cwd()
 
 app.use(bodyParser.json())
 
@@ -18,10 +19,10 @@ if (env == 'development') {
   app.use(morgan('combined'))
 }
 
-app.use(express.static(path.resolve(__dirname, 'public')))
+app.use(express.static(path.resolve(cwd, 'public')))
 
 app.get('*', function (req, res) {
-  res.sendFile(path.resolve(__dirname, 'public', 'index.html'))
+  res.sendFile(path.resolve(cwd, 'public', 'index.html'))
 })
 
 server.listen(port, function () {
