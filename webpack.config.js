@@ -8,19 +8,21 @@ const TerserPlugin  = require('terser-webpack-plugin')
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin')
 const WriteFilePlugin = require('write-file-webpack-plugin')
 
+const cwd = process.cwd()
+
 module.exports = (env, argv) => {
   // Common
   const commonConfig = {
     mode: argv.mode,
 
     entry: {
-      app: path.resolve(__dirname, 'src', 'index.js')
+      app: path.resolve(cwd, 'src', 'index.js')
     },
   
     output: {
       filename: '[name].js',
       chunkFilename: '[name].js',
-      path: path.resolve(__dirname, 'public'),
+      path: path.resolve(cwd, 'public'),
       publicPath: '/'
     },
   
@@ -70,7 +72,7 @@ module.exports = (env, argv) => {
       new CleanWebpackPlugin(),
       new HtmlWebpackPlugin({
         inject: false,
-        template: path.resolve(__dirname, 'src', 'index.ejs'),
+        template: path.resolve(cwd, 'src', 'index.ejs'),
         filename: 'index.html',
         minify: {
           collapseWhitespace: true
@@ -84,7 +86,7 @@ module.exports = (env, argv) => {
     devtool: 'eval-source-map',
 
     devServer: {
-      contentBase: path.resolve(__dirname, 'src'),
+      contentBase: path.resolve(cwd, 'src'),
       watchContentBase: false,
       publicPath: '/',
       host: '0.0.0.0',
