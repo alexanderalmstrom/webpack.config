@@ -99,7 +99,7 @@ module.exports = (env, argv) => {
     plugins: [
       new webpack.HotModuleReplacementPlugin(),
       new WriteFilePlugin({
-        test: /\.(css|js|html)$/,
+        test: /\.(html|js|css|svg)$/,
         useHashIndex: true
       })
     ]
