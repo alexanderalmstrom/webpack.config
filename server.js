@@ -4,12 +4,12 @@ const http = require('http')
 const morgan = require('morgan')
 const bodyParser = require('body-parser')
 
+const cwd = process.cwd()
 const env = process.env.NODE_ENV || 'production'
 
 const app = express()
 const server = http.createServer(app)
 const port = process.env.PORT || 5000
-const cwd = process.cwd()
 
 app.use(bodyParser.json())
 
