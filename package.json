@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "author": "Alexander Almström <alexander@alexanderalmstrom.com>",
   "main": "webpack.config.js",
-  "repository": "git@github.com:alexanderalmstrom/webpack.config.git",
+  "repository": "https://github.com/alexanderalmstrom/webpack.config.git",
   "license": "MIT",
   "scripts": {
     "start": "webpack-dev-server --mode=development",
