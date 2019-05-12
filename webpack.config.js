@@ -1,14 +1,16 @@
-const path = require('path')
-const webpack = require('webpack')
-const merge = require('webpack-merge')
-const CleanWebpackPlugin = require('clean-webpack-plugin')
-const CssExtractPlugin = require("mini-css-extract-plugin")
-const HtmlWebpackPlugin = require('html-webpack-plugin')
-const TerserPlugin  = require('terser-webpack-plugin')
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin')
-const WriteFilePlugin = require('write-file-webpack-plugin')
+/* eslint-env node */
 
-const cwd = process.cwd()
+const path = require("path");
+const webpack = require("webpack");
+const merge = require("webpack-merge");
+const CleanWebpackPlugin = require("clean-webpack-plugin");
+const CssExtractPlugin = require("mini-css-extract-plugin");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const TerserPlugin  = require("terser-webpack-plugin");
+const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
+const WriteFilePlugin = require("write-file-webpack-plugin");
+
+const cwd = process.cwd();
 
 module.exports = (env, argv) => {
   // Common
@@ -16,41 +18,46 @@ module.exports = (env, argv) => {
     mode: argv.mode,
 
     entry: {
-      app: path.resolve(cwd, 'src', 'index.js')
+      app: path.resolve(cwd, "src", "index.js")
     },
   
     output: {
-      filename: '[name].js',
-      chunkFilename: '[name].js',
-      path: path.resolve(cwd, 'public'),
-      publicPath: '/'
+      filename: "[name].js",
+      chunkFilename: "[name].js",
+      path: path.resolve(cwd, "public"),
+      publicPath: "/"
     },
   
     module: {
       rules: [
         {
           test: /\.js$/,
+          exclude: /node_modules/,
+          loader: "eslint-loader"
+        },
+        {
+          test: /\.js$/,
           exclude: /\node_modules/,
-          loader: 'babel-loader'
+          loader: "babel-loader"
         },
         {
           test: /\.(css|scss)$/,
           use: [
             {
-              loader: argv.mode == 'development' ? 'style-loader' : CssExtractPlugin.loader
+              loader: argv.mode == "development" ? "style-loader" : CssExtractPlugin.loader
             },
             {
-              loader: 'css-loader',
+              loader: "css-loader",
               options: {
-                sourceMap: argv.mode == 'development' ? true : false,
+                sourceMap: argv.mode == "development" ? true : false,
                 importLoaders: 2
               }
             },
             {
-              loader: 'sass-loader',
+              loader: "sass-loader",
               options: {
-                sourceMap: argv.mode == 'development' ? true : false,
-                includePaths: ['node_modules']
+                sourceMap: argv.mode == "development" ? true : false,
+                includePaths: ["node_modules"]
               }
             }
           ]
@@ -72,24 +79,24 @@ module.exports = (env, argv) => {
       new CleanWebpackPlugin(),
       new HtmlWebpackPlugin({
         inject: false,
-        template: path.resolve(cwd, 'src', 'index.ejs'),
-        filename: 'index.html',
+        template: path.resolve(cwd, "src", "index.ejs"),
+        filename: "index.html",
         minify: {
           collapseWhitespace: true
         }
       })
     ]
-  }
+  };
   
   // Development
   const devConfig = {
-    devtool: 'eval-source-map',
+    devtool: "eval-source-map",
 
     devServer: {
-      contentBase: path.resolve(cwd, 'src'),
+      contentBase: path.resolve(cwd, "src"),
       watchContentBase: false,
-      publicPath: '/',
-      host: '0.0.0.0',
+      publicPath: "/",
+      host: "0.0.0.0",
       disableHostCheck: true,
       port: 5000,
       hot: true,
@@ -103,13 +110,13 @@ module.exports = (env, argv) => {
         useHashIndex: true
       })
     ]
-  }
+  };
   
   // Production
   const prodConfig = {
     output: {
-      filename: '[name].[hash].js',
-      chunkFilename: '[name].[chunkhash].js'
+      filename: "[name].[hash].js",
+      chunkFilename: "[name].[chunkhash].js"
     },
 
     optimization: {
@@ -125,17 +132,17 @@ module.exports = (env, argv) => {
 
     plugins: [
       new webpack.DefinePlugin({
-        'process.env.NODE_ENV': JSON.stringify(argv.mode)
+        "process.env.NODE_ENV": JSON.stringify(argv.mode)
       }),
       new CssExtractPlugin({
-        filename: '[name].[hash].css',
-        chunkFilename: '[name].[chunkhash].css'
+        filename: "[name].[hash].css",
+        chunkFilename: "[name].[chunkhash].css"
       })
     ]
-  }
+  };
   
   return merge(
     commonConfig,
-    argv.mode == 'development' ? devConfig : prodConfig
-  )
-}
+    argv.mode == "development" ? devConfig : prodConfig
+  );
+};
